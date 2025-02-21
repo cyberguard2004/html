@@ -78,60 +78,100 @@
  };
 </script>
 <script>
- var BlueRobot = function () {
-   this.sprites = new Image();
-   this.sprites.src = 'blue-robot.png'; // this sprite sheet has 8 cells
-   this.targetMode = 'idle';
-   this.walk = function () {
-     this.targetMode = 'walk';
-   };
-   this.stop = function () {
-     this.targetMode = 'idle';
-   };
-   this.frameIndex = {
-     'idle': [0], // first cell is the idle frame
-     'walk': [1,2,3,4,5,6], // the walking animation is cells 1-6
-     'stop': [7], // last cell is the stopping animation
-   };
-   this.mode = 'idle';
-   this.frame = 0; // index into frameIndex
-   this.tick = function () {
-     // this advances the frame and the robot
-     // the return value is how many pixels the robot has moved
-     this.frame += 1;
-     if (this.frame >= this.frameIndex[this.mode].length) {
-       // we've reached the end of this animation cycle
-       this.frame = 0;
-       if (this.mode != this.targetMode) {
-         // switch to next cycle
-         if (this.mode == 'walk') {
-           // we need to stop walking before we decide what to do next
-           this.mode = 'stop';
-         } else if (this.mode == 'stop') {
-           if (this.targetMode == 'walk')
-             this.mode = 'walk';
-           else
-             this.mode = 'idle';
-         } else if (this.mode == 'idle') {
-           if (this.targetMode == 'walk')
-             this.mode = 'walk';
-         }
-       }
-     }
-     if (this.mode == 'walk')
-       return 8;
-     return 0;
-   },
-   this.paint = function (context, x, y) {
-     if (!this.sprites.complete) return;
-     // draw the right frame out of the sprite sheet onto the canvas
-     // we assume each frame is as high as the sprite sheet
-     // the x,y coordinates give the position of the bottom center of the sprite
-     context.drawImage(this.sprites,
-                       this.frameIndex[this.mode][this.frame] * this.sprites.height, 0, this.sprites.height, this.sprites.height,
-                       x-this.sprites.height/2, y-this.sprites.height, this.sprites.height, this.sprites.height);
-   };
- };
+
+  class BlueRobot {
+  constructor() {
+    this.sprites = new Image();
+    this.sprites.src = 'blue-robot.png'; // Sprite sheet with 8 cells
+    this.targetMode = 'idle'; // Target mode
+    this.mode = 'idle'; // Current mode
+    this.frame = 0; // Current frame index
+    this.animationSpeed = 100; // Animation speed in milliseconds
+    this.moveSpeed = 8; // Movement speed in pixels
+    this.frameIndex = {
+      idle: [0], // First cell for idle
+      walk: [1, 2, 3, 4, 5, 6], // Walking animation
+      stop: [7], // Last cell for stopping
+    };
+    this.animationInterval = null; // Animation interval
+    this.init();
+  }
+
+  // Initialization
+  init() {
+    this.sprites.onload = () => {
+      console.log('Spritesheet loaded successfully.');
+      this.startAnimation();
+    };
+    this.sprites.onerror = () => {
+      console.error('Error loading the spritesheet.');
+    };
+  }
+
+  // Start the animation
+  startAnimation() {
+    if (this.animationInterval) clearInterval(this.animationInterval);
+    this.animationInterval = setInterval(() => this.tick(), this.animationSpeed);
+  }
+
+  // Change mode
+  setMode(mode) {
+    if (this.mode !== mode) {
+      this.targetMode = mode;
+      if (this.mode === 'walk' && mode !== 'walk') {
+        this.mode = 'stop'; // Transition to stop before changing mode
+      } else {
+        this.mode = mode;
+      }
+      this.frame = 0; // Reset animation
+    }
+  }
+
+  // Advance the animation
+  tick() {
+    this.frame = (this.frame + 1) % this.frameIndex[this.mode].length;
+    if (this.frame === 0 && this.mode === 'stop') {
+      this.mode = this.targetMode; // Switch to target mode after stopping
+    }
+  }
+
+  // Draw the robot
+  paint(context, x, y) {
+    if (!this.sprites.complete) return; // Do not draw if the image is not loaded
+
+    const frame = this.frameIndex[this.mode][this.frame];
+    const spriteSize = this.sprites.height; // Size of a frame (square)
+
+    context.drawImage(
+      this.sprites,
+      frame * spriteSize, 0, spriteSize, spriteSize, // Source: frame in the spritesheet
+      x - spriteSize / 2, y - spriteSize, spriteSize, spriteSize // Destination: position on the canvas
+    );
+  }
+
+  // Move the robot
+  move() {
+    if (this.mode === 'walk') {
+      return this.moveSpeed; // Return the distance traveled
+    }
+    return 0;
+  }
+
+  // Stop the robot
+  stop() {
+    this.setMode('idle');
+  }
+
+  // Make the robot walk
+  walk() {
+    this.setMode('walk');
+  }
+}
+
+// Example usage
+const robot = new BlueRobot();
+robot.walk(); // Start walking
+setTimeout(() => robot.stop(), 5000); // Stop after 5 seconds 
 </script>
 <script>
  var animating = false;
